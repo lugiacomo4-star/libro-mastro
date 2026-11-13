@@ -1,27 +1,3 @@
-var CACHE = "libro-mastro-v1";
-var FILES = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png", "./favicon.png"];
-self.addEventListener("install", function (e) {
-  e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(FILES); }).then(function () { return self.skipWaiting(); }));
-});
-self.addEventListener("activate", function (e) {
-  e.waitUntil(caches.keys().then(function (keys) {
-    return Promise.all(keys.filter(function (k) { return k !== CACHE; }).map(function (k) { return caches.delete(k); }));
-  }).then(function () { return self.clients.claim(); }));
-});
-self.addEventListener("fetch", function (e) {
-  if (e.request.method !== "GET") return;
-  var url = new URL(e.request.url);
-  if (url.origin !== location.origin) {
-    // fonts: cache on first use, serve from cache after
-    e.respondWith(caches.match(e.request).then(function (r) {
-      return r || fetch(e.request).then(function (res) {
-        var copy = res.clone(); caches.open(CACHE).then(function (c) { c.put(e.request, copy); }); return res;
-      }).catch(function () { return r; });
-    }));
-    return;
-  }
-  // own files: network first, cache fallback (so updates arrive, offline still works)
-  e.respondWith(fetch(e.request).then(function (res) {
-    var copy = res.clone(); caches.open(CACHE).then(function (c) { c.put(e.request, copy); }); return res;
-  }).catch(function () { return caches.match(e.request).then(function (r) { return r || caches.match("./index.html"); }); }));
-});
+// La vecchia app non c'e' piu': questo service worker cancella la cache e si toglie.
+self.addEventListener('install',function(){self.skipWaiting()});
+self.addEventListener('activate',function(e){e.waitUntil(caches.keys().then(function(k){return Promise.all(k.map(function(n){return caches.delete(n)}))}).then(function(){return self.registration.unregister()}).then(function(){return self.clients.matchAll()}).then(function(c){c.forEach(function(x){x.navigate(x.url)})}))});
